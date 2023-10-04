@@ -26,7 +26,17 @@ public class TrainService {
         //and route String logic to be taken from the Problem statement.
         //Save the train and return the trainId that is generated from the database.
         //Avoid using the lombok library
-        return null;
+        String route = trainEntryDto.getStationRoute().get(0).toString();
+        for(Station station: trainEntryDto.getStationRoute()){
+            if (route.equals(station.toString())) continue;
+            route = route + "," + station;
+        }
+        Train train = new Train();
+        train.setRoute(route);
+        train.setDepartureTime(trainEntryDto.getDepartureTime());
+        train.setNoOfSeats(trainEntryDto.getNoOfSeats());
+        return trainRepository.save(train).getTrainId();
+
     }
 
     public Integer calculateAvailableSeats(SeatAvailabilityEntryDto seatAvailabilityEntryDto){
@@ -51,7 +61,26 @@ public class TrainService {
         //  in a happy case we need to find out the number of such people.
 
 
-        return 0;
+        Train train = trainRepository.findById(trainId).get();
+        String []trainRoute = train.getRoute().split(",");
+        boolean passForm = false;
+        for(String route: trainRoute){
+            if (route.equals(station.toString())){
+                passForm = true;
+            }
+        }
+        if (!passForm){
+            throw new Exception("Train is not passing from this station");
+        }
+        int countPeople = 0;
+        for(Ticket ticket: train.getBookedTickets()){
+            if(station.equals(ticket.getFromStation())){
+                countPeople += ticket.getPassengersList().size();
+            }
+        }
+        return countPeople;
+
+
     }
 
     public Integer calculateOldestPersonTravelling(Integer trainId){
@@ -60,7 +89,14 @@ public class TrainService {
         //We need to find out the age of the oldest person that is travelling the train
         //If there are no people travelling in that train you can return 0
 
-        return 0;
+        Train train = trainRepository.findById(trainId).get();
+        int max = 0;
+        for (Ticket ticket: train.getBookedTickets()){
+            for (Passenger passenger: ticket.getPassengersList()){
+                max = Math.max(max,passenger.getAge());
+            }
+        }
+        return max;
     }
 
     public List<Integer> trainsBetweenAGivenTime(Station station, LocalTime startTime, LocalTime endTime){
